@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+</head>
+<body>
+    <h1>Admin Dashboard</h1>
+    <p>Welcome to FastAPI Admin Lite.</p>
+    <ul>
+        {% for model in models %}
+        <li><a href="/admin/{{ model }}">{{ model|capitalize }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

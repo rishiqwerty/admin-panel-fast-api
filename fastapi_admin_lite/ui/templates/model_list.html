@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ model_name|capitalize }} List</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+</head>
+<body>
+    <a href="/admin">Back to Dashboard</a>
+    <h1>{{ model_name|capitalize }}</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="data-table">
+            <!-- Data will be loaded here via JS or HTMX -->
+        </tbody>
+    </table>
+</body>
+</html>
