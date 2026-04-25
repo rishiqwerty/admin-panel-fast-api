@@ -1,0 +1,359 @@
+{% extends "layout.html" %}
+
+{% set active_nav = model_name %}
+
+{% block extra_css %}
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 24px;
+    }
+
+    .breadcrumb a {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .form-header {
+        margin-bottom: 32px;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        text-decoration: none;
+        margin-bottom: 12px;
+    }
+
+    .form-container {
+        max-width: 800px;
+        margin-bottom: 32px;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+    }
+
+    .form-group {
+        margin-bottom: 24px;
+    }
+
+    .form-group.full-width {
+        grid-column: span 2;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+        letter-spacing: 0.05em;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        outline: none;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+    }
+
+    .form-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(0, 137, 167, 0.1);
+    }
+
+    .form-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding: 20px 32px;
+        background-color: #fafafa;
+        border-top: 1px solid var(--border);
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+    }
+
+    /* Toggle Switch */
+    .toggle-group {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        background-color: #f8fafc;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+    }
+
+    .toggle-info .title {
+        font-weight: 700;
+        font-size: 0.9rem;
+        display: block;
+    }
+
+    .toggle-info .desc {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+    }
+
+    .switch input { opacity: 0; width: 0; height: 0; }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: #cbd5e1;
+        transition: .4s;
+        border-radius: 24px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px; width: 18px;
+        left: 3px; bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked + .slider { background-color: var(--primary); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    /* Metadata Cards */
+    .meta-cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+    }
+
+    .meta-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px;
+    }
+
+    .meta-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        background-color: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary);
+    }
+
+    .meta-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+
+    .meta-value {
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+{% endblock %}
+
+{% block content %}
+
+<div class="breadcrumb">
+    <a href="/admin">Dashboard</a>
+    <i class="fas fa-chevron-right" style="font-size: 0.6rem;"></i>
+    <a href="/admin/{{ model_name }}">{{ model_name|capitalize }}</a>
+    <i class="fas fa-chevron-right" style="font-size: 0.6rem;"></i>
+    <span>{% if id %}Edit{% else %}Create{% endif %} {{ model_name|capitalize }}</span>
+</div>
+
+<a href="/admin/{{ model_name }}" class="back-link">
+    <i class="fas fa-arrow-left"></i> Back to List
+</a>
+
+<div class="form-header">
+    <h1 class="page-title">{% if id %}Edit{% else %}Create{% endif %} {{ model_name|capitalize }}{% if id %}: <span id="record-title">Loading...</span>{% endif %}</h1>
+    <p class="page-subtitle">{% if id %}Update the details and visibility of this record.{% else %}Define a new record for your database.{% endif %}</p>
+</div>
+
+<div class="card form-container" style="padding: 0;">
+    <form id="record-form">
+        <div style="padding: 32px;">
+            <div class="form-grid" id="form-fields">
+                <!-- Fields injected via JS -->
+            </div>
+        </div>
+        
+        <div class="form-footer">
+            <button type="button" class="btn btn-secondary" onclick="location.href='/admin/{{ model_name }}'">Cancel</button>
+            <button type="submit" class="btn btn-primary">{% if id %}Save Changes{% else %}Create Record{% endif %}</button>
+        </div>
+    </form>
+</div>
+
+{% if id %}
+<div class="meta-cards">
+    <div class="card meta-card">
+        <div class="meta-icon">
+            <i class="far fa-clock"></i>
+        </div>
+        <div>
+            <div class="meta-label">Last Modified</div>
+            <div class="meta-value">Oct 24, 2023 - 14:32 PM</div>
+        </div>
+    </div>
+    <div class="card meta-card">
+        <div class="meta-icon">
+            <i class="far fa-user"></i>
+        </div>
+        <div>
+            <div class="meta-label">Created By</div>
+            <div class="meta-value">System Admin (ID: 021)</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const modelName = "{{ model_name }}";
+    const recordId = "{{ id or '' }}";
+    const apiBaseUrl = "/admin/api";
+
+    async function loadForm() {
+        try {
+            // Fetch schema
+            const schemaResponse = await fetch(`${apiBaseUrl}/schema`);
+            const schema = await schemaResponse.json();
+            const modelSchema = schema.models.find(m => m.name === modelName);
+            
+            let initialData = {};
+            if (recordId) {
+                const response = await fetch(`${apiBaseUrl}/${modelName}/${recordId}`);
+                initialData = await response.json();
+                
+                // Update title if possible
+                const titleVal = initialData.name || initialData.email || initialData.id;
+                document.getElementById('record-title').textContent = titleVal;
+            }
+
+            const container = document.getElementById('form-fields');
+            const readonlyFields = modelSchema.config?.readonly_fields || [];
+            container.innerHTML = modelSchema.fields.map(field => {
+                const name = field.name;
+                const type = field.type.toLowerCase();
+                const isBoolean = type.includes('boolean');
+                const isReadonly = readonlyFields.includes(name);
+                const disabled = isReadonly ? 'disabled' : '';
+                
+                if (name === 'id' && !recordId) return '';
+                if (name === 'id') return `<input type="hidden" name="id" value="${initialData[name]}">`;
+                
+                const val = initialData[name] !== undefined ? initialData[name] : '';
+                
+                if (isBoolean) {
+                    const checked = val === true || val === 'true' ? 'checked' : '';
+                    return `
+                        <div class="form-group full-width">
+                            <div class="toggle-group">
+                                <div class="toggle-info">
+                                    <span class="title">Active Status</span>
+                                    <span class="desc">Toggle visibility of this record in the system.</span>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" name="${name}" ${checked} value="true" ${disabled}>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const isFullWidth = name.includes('description') || name.includes('content');
+                const isRequired = field.required;
+                
+                return `
+                    <div class="form-group ${isFullWidth ? 'full-width' : ''}">
+                        <label class="form-label">
+                            ${name.replace('_', ' ')}
+                            ${isRequired ? '<span style="color: var(--error); margin-left: 4px;">*</span>' : ''}
+                        </label>
+                        ${isFullWidth ? 
+                            `<textarea class="form-input" name="${name}" rows="4" ${isRequired ? 'required' : ''} ${disabled}>${val}</textarea>` : 
+                            `<input type="text" class="form-input" name="${name}" value="${val}" placeholder="${field.type}" ${isRequired ? 'required' : ''} ${disabled}>`
+                        }
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error loading form:', error);
+        }
+    }
+
+    document.getElementById('record-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        
+        // Handle checkboxes (ensure false is sent if unchecked)
+        const data = Object.fromEntries(formData.entries());
+        
+        // We need to check the schema to see which fields are booleans and handle unchecked state
+        const schemaResponse = await fetch(`${apiBaseUrl}/schema`);
+        const schema = await schemaResponse.json();
+        const modelSchema = schema.models.find(m => m.name === modelName);
+        
+        modelSchema.fields.forEach(field => {
+            if (field.type.toLowerCase().includes('boolean') && !data[field.name]) {
+                data[field.name] = "false";
+            }
+        });
+
+        const method = recordId ? 'PUT' : 'POST';
+        const url = recordId ? `${apiBaseUrl}/${modelName}/${recordId}` : `${apiBaseUrl}/${modelName}`;
+        
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                location.href = `/admin/${modelName}`;
+            } else {
+                const err = await response.json();
+                alert('Error saving record: ' + (err.detail || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Error saving record');
+        }
+    };
+
+    loadForm();
+</script>
+{% endblock %}

@@ -14,7 +14,8 @@ def introspect_sqlalchemy_model(model: Type[Any]) -> Dict[str, Any]:
             "type": str(column.type),
             "primary_key": column.primary_key,
             "nullable": column.nullable,
-            "default": str(column.default) if column.default else None
+            "default": str(column.default) if column.default else None,
+            "required": not column.nullable and column.default is None and not column.primary_key
         })
     return {
         "fields": fields

@@ -18,21 +18,58 @@ def create_admin_router(admin: Any) -> APIRouter:
     # Dynamically generate routes for each registered model
     for name, registration in admin.registry.get_models().items():
         crud = CRUDEngine(registration.model)
+        get_db_dep = registration.get_db
         
-        def create_list_route(model_name: str, crud_engine: CRUDEngine, get_db_dep: Any):
+        def create_routes(model_name: str, crud_engine: CRUDEngine, db_dep: Any, reg: Any):
             @router.get(f"/{model_name}", name=f"admin_list_{model_name}")
             async def list_records(
                 skip: int = 0, 
                 limit: int = 100, 
                 search: str = None, 
-                db: Session = Depends(get_db_dep)
+                order_by: str = None,
+                order_dir: str = "asc",
+                db: Session = Depends(db_dep)
             ):
-                records = crud_engine.list(db, skip=skip, limit=limit, search=search)
-                return {"data": records, "total": len(records)} # TODO: Fix total
-            return list_records
+                records = crud_engine.list(
+                    db, skip=skip, limit=limit, search=search, 
+                    order_by=order_by, order_dir=order_dir
+                )
+                total = crud_engine.count(db, search=search)
+                return {"data": records, "total": total}
 
-        create_list_route(name, crud, registration.get_db)
+            @router.get(f"/{model_name}/{{id}}", name=f"admin_get_{model_name}")
+            async def get_record(id: Any, db: Session = Depends(db_dep)):
+                record = crud_engine.get(db, id)
+                if not record:
+                    raise HTTPException(status_code=404, detail="Record not found")
+                return record
 
-        # TODO: Add GET, POST, PUT, DELETE routes for each model
+            @router.post(f"/{model_name}", name=f"admin_create_{model_name}")
+            async def create_record(data: Dict[str, Any], db: Session = Depends(db_dep)):
+                readonly = reg.config.get("readonly_fields", [])
+                for field in readonly:
+                    if field in data:
+                        del data[field]
+                return crud_engine.create(db, data)
+
+            @router.put(f"/{model_name}/{{id}}", name=f"admin_update_{model_name}")
+            async def update_record(id: Any, data: Dict[str, Any], db: Session = Depends(db_dep)):
+                readonly = reg.config.get("readonly_fields", [])
+                for field in readonly:
+                    if field in data:
+                        del data[field]
+                record = crud_engine.update(db, id, data)
+                if not record:
+                    raise HTTPException(status_code=404, detail="Record not found")
+                return record
+
+            @router.delete(f"/{model_name}/{{id}}", name=f"admin_delete_{model_name}")
+            async def delete_record(id: Any, db: Session = Depends(db_dep)):
+                success = crud_engine.delete(db, id)
+                if not success:
+                    raise HTTPException(status_code=404, detail="Record not found")
+                return {"success": True}
+
+        create_routes(name, crud, get_db_dep, registration)
         
     return router

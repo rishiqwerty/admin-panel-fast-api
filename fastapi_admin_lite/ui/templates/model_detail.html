@@ -1,0 +1,170 @@
+{% extends "layout.html" %}
+
+{% set active_nav = model_name %}
+
+{% block extra_css %}
+    .detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+    }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+    }
+
+    .detail-item {
+        padding: 24px;
+        border-bottom: 1px solid var(--border);
+        background-color: white;
+    }
+
+    .detail-item:nth-child(odd) {
+        border-right: 1px solid var(--border);
+    }
+
+    .detail-item.full-width {
+        grid-column: span 2;
+        border-right: none;
+    }
+
+    .detail-item:last-child, .detail-item:nth-last-child(2):not(.full-width) {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+        letter-spacing: 0.05em;
+    }
+
+    .detail-value {
+        font-size: 1rem;
+        font-weight: 500;
+        word-break: break-all;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .status-pill.active { background-color: #dcfce7; color: #15803d; }
+    .status-pill.inactive { background-color: #f1f5f9; color: #64748b; }
+{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="/admin">Dashboard</a>
+    <i class="fas fa-chevron-right" style="font-size: 0.6rem;"></i>
+    <a href="/admin/{{ model_name }}">{{ model_name|capitalize }}</a>
+    <i class="fas fa-chevron-right" style="font-size: 0.6rem;"></i>
+    <span>{{ model_name|capitalize }} Details</span>
+</div>
+
+<div class="detail-header">
+    <div>
+        <h1 class="page-title">{{ model_name|capitalize }} Details</h1>
+        <p class="page-subtitle">Full record information and audit metadata.</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <button class="btn btn-secondary" onclick="location.href='/admin/{{ model_name }}'">
+            <i class="fas fa-arrow-left"></i> Back
+        </button>
+        <button class="btn btn-primary" onclick="location.href='/admin/{{ model_name }}/{{ id }}'">
+            <i class="fas fa-pencil-alt"></i> Edit Record
+        </button>
+    </div>
+</div>
+
+<div class="card" style="padding: 0; overflow: hidden; margin-bottom: 32px;">
+    <div id="detail-container" class="detail-grid">
+        <div style="grid-column: span 2; padding: 48px; text-align: center; color: var(--text-muted);">
+            <i class="fas fa-circle-notch fa-spin"></i> Loading details...
+        </div>
+    </div>
+</div>
+
+<div class="section-header" style="margin-top: 32px;">
+    <h2 class="section-title">System Information</h2>
+</div>
+
+<div class="meta-cards">
+    <div class="card meta-card">
+        <div class="meta-icon">
+            <i class="far fa-clock"></i>
+        </div>
+        <div>
+            <div class="meta-label">Created At</div>
+            <div class="meta-value">Oct 24, 2023 - 14:32 PM</div>
+        </div>
+    </div>
+    <div class="card meta-card">
+        <div class="meta-icon">
+            <i class="far fa-database"></i>
+        </div>
+        <div>
+            <div class="meta-label">Record Source</div>
+            <div class="meta-value">SQLAlchemy Production DB</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const modelName = "{{ model_name }}";
+    const recordId = "{{ id }}";
+    const apiBaseUrl = "/admin/api";
+
+    async function loadDetail() {
+        try {
+            const response = await fetch(`${apiBaseUrl}/${modelName}/${recordId}`);
+            const data = await response.json();
+            
+            const container = document.getElementById('detail-container');
+            const keys = Object.keys(data);
+            
+            container.innerHTML = keys.map(key => {
+                const val = data[key];
+                const isFullWidth = typeof val === 'string' && val.length > 50;
+                
+                let displayVal = val;
+                if (typeof val === 'boolean' || key === 'is_active') {
+                    const isActive = val === true || val === 'true';
+                    displayVal = `<span class="status-pill ${isActive ? 'active' : 'inactive'}">
+                                    <i class="fas ${isActive ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+                                    ${isActive ? 'Active' : 'Inactive'}
+                                  </span>`;
+                }
+
+                return `
+                    <div class="detail-item ${isFullWidth ? 'full-width' : ''}">
+                        <div class="detail-label">${key.replace('_', ' ')}</div>
+                        <div class="detail-value">${displayVal}</div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error loading detail:', error);
+            document.getElementById('detail-container').innerHTML = '<div style="grid-column: span 2; padding: 48px; color: var(--error);">Error loading record details</div>';
+        }
+    }
+
+    loadDetail();
+</script>
+{% endblock %}
