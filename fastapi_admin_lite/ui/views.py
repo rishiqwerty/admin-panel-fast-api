@@ -1,8 +1,11 @@
 from typing import Any
-from fastapi import APIRouter, Request
+import asyncio
+from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.ext.asyncio import AsyncSession
 import os
+import asyncio
 
 # Get path to templates directory relative to this file
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
@@ -74,7 +77,13 @@ def create_ui_router(admin: Any) -> APIRouter:
         return templates.TemplateResponse(
             request=request, 
             name="dashboard.html", 
-            context={"stats": stats, "recent_logs": recent_logs, "models": list(models.keys())}
+            context={
+                "stats": stats, 
+                "recent_logs": recent_logs, 
+                "models": list(models.keys()),
+                "logs_config": admin.logs_config,
+                "admin_title": admin.title
+            }
         )
 
     @router.get("/{model_name}", response_class=HTMLResponse)
@@ -127,7 +136,8 @@ def create_ui_router(admin: Any) -> APIRouter:
                 "recent_count": recent_count,
                 "attention_count": attention_count,
                 "has_date_field": bool(date_field),
-                "has_attention_filter": attn_filter is not None
+                "has_attention_filter": attn_filter is not None,
+                "admin_title": admin.title
             }
         )
 

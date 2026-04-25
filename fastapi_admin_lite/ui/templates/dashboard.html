@@ -90,26 +90,27 @@
     }
 
     .badge {
-        padding: 4px 8px;
-        border-radius: 4px;
+        padding: 4px 10px;
+        border-radius: 12px;
         font-size: 0.7rem;
         font-weight: 700;
         text-transform: uppercase;
+        letter-spacing: 0.025em;
     }
 
-    .badge-info { background-color: #e0f2fe; color: #0369a1; }
-    .badge-warn { background-color: #fef3c7; color: #b45309; }
-    .badge-error { background-color: #fee2e2; color: #b91c1c; }
-    .badge-success { background-color: #dcfce7; color: #15803d; }
+    .badge-info { background-color: var(--info-bg); color: var(--info-text); }
+    .badge-warn { background-color: var(--warning-bg); color: var(--warning-text); }
+    .badge-error { background-color: var(--error-bg); color: var(--error-text); }
+    .badge-success { background-color: var(--success-bg); color: var(--success-text); }
 
     .status-text {
         font-weight: 600;
         font-family: monospace;
     }
 
-    .status-200 { color: var(--success); }
-    .status-422 { color: var(--error); }
-    .status-latency { color: var(--warning); }
+    .status-200 { color: var(--success-text); }
+    .status-422 { color: var(--error-text); }
+    .status-latency { color: var(--warning-text); }
 
     /* Quick Actions */
     .quick-actions {
@@ -134,12 +135,12 @@
     .action-icon {
         width: 48px;
         height: 48px;
-        background-color: #f1f5f9;
+        background-color: var(--bg-surface);
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--text-muted);
+        color: var(--primary);
         font-size: 1.25rem;
     }
 
