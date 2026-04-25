@@ -14,31 +14,38 @@ def create_ui_router(admin: Any) -> APIRouter:
     @router.get("/", response_class=HTMLResponse)
     async def dashboard(request: Request):
         from datetime import datetime, timedelta
+        from sqlalchemy import select, func
         models = admin.registry.get_models()
-        model_names = list(models.keys())
         
         # Collect real counts for each model
         stats = []
         for name, reg in models.items():
-            # Skip if user has specified a subset of models for the dashboard
             if admin.dashboard_models and name not in admin.dashboard_models:
                 continue
                 
             db_gen = reg.get_db()
-            db = next(db_gen)
+            # Handle both async and sync generators for maximum compatibility
+            if hasattr(db_gen, "__anext__"):
+                db = await db_gen.__anext__()
+            else:
+                db = next(db_gen)
+
             try:
                 # 1. Get Total Count
-                total_count = db.query(reg.model).count()
+                total_query = select(func.count()).select_from(reg.model)
+                total_result = await db.execute(total_query)
+                total_count = total_result.scalar()
                 
-                # 2. Get 24h Count if date_field is set
+                # 2. Get 24h Count
                 recent_count = None
                 date_field = reg.config.get("date_field")
-                
                 if date_field and hasattr(reg.model, date_field):
                     yesterday = datetime.now() - timedelta(hours=24)
-                    recent_count = db.query(reg.model).filter(
+                    recent_query = select(func.count()).select_from(reg.model).filter(
                         getattr(reg.model, date_field) >= yesterday
-                    ).count()
+                    )
+                    recent_result = await db.execute(recent_query)
+                    recent_count = recent_result.scalar()
 
                 stats.append({
                     "name": reg.config.get("display_name") or name.capitalize(),
@@ -48,68 +55,68 @@ def create_ui_router(admin: Any) -> APIRouter:
                     "has_date_field": bool(date_field)
                 })
             finally:
-                # Handle generators properly
-                try:
-                    next(db_gen)
-                except StopIteration:
-                    pass
-                    
-        # Fetch Logs
-        logs = []
+                if hasattr(db_gen, "aclose"):
+                    await db_gen.aclose()
+                elif hasattr(db_gen, "close"):
+                    db_gen.close()
+
+        # Handle logs
+        recent_logs = []
         if admin.get_logs:
             try:
-                logs = admin.get_logs()
+                if asyncio.iscoroutinefunction(admin.get_logs):
+                    recent_logs = await admin.get_logs()
+                else:
+                    recent_logs = admin.get_logs()
             except Exception as e:
                 print(f"Error fetching logs: {e}")
 
         return templates.TemplateResponse(
             request=request, 
-            name=admin.dashboard_template or "dashboard.html", 
-            context={
-                "models": model_names, 
-                "stats": stats,
-                "admin_title": admin.title,
-                "logs": logs,
-                "logs_config": admin.logs_config
-            }
+            name="dashboard.html", 
+            context={"stats": stats, "recent_logs": recent_logs, "models": list(models.keys())}
         )
 
     @router.get("/{model_name}", response_class=HTMLResponse)
     async def model_list(request: Request, model_name: str):
         from datetime import datetime, timedelta
+        from sqlalchemy import select, func
         reg = admin.registry.get_model(model_name)
         if not reg:
             raise HTTPException(status_code=404, detail="Model not found")
             
         models = list(admin.registry.get_models().keys())
         
-        # Calculate 24h stats for this specific model
+        # Calculate stats for this specific model
         recent_count = None
-        date_field = reg.config.get("date_field")
-        
-        if date_field and hasattr(reg.model, date_field):
-            db_gen = reg.get_db()
-            db = next(db_gen)
-            try:
-                yesterday = datetime.now() - timedelta(hours=24)
-                recent_count = db.query(reg.model).filter(
-                    getattr(reg.model, date_field) >= yesterday
-                ).count()
-            finally:
-                try: next(db_gen)
-                except StopIteration: pass
-        
-        # Calculate Attention count
         attention_count = None
+        date_field = reg.config.get("date_field")
         attn_filter = reg.config.get("attention_filter")
-        if attn_filter is not None:
-            db_gen = reg.get_db()
+        
+        db_gen = reg.get_db()
+        if hasattr(db_gen, "__anext__"):
+            db = await db_gen.__anext__()
+        else:
             db = next(db_gen)
-            try:
-                attention_count = db.query(reg.model).filter(attn_filter).count()
-            finally:
-                try: next(db_gen)
-                except StopIteration: pass
+
+        try:
+            if date_field and hasattr(reg.model, date_field):
+                yesterday = datetime.now() - timedelta(hours=24)
+                recent_query = select(func.count()).select_from(reg.model).filter(
+                    getattr(reg.model, date_field) >= yesterday
+                )
+                recent_result = await db.execute(recent_query)
+                recent_count = recent_result.scalar()
+            
+            if attn_filter is not None:
+                attn_query = select(func.count()).select_from(reg.model).filter(attn_filter)
+                attn_result = await db.execute(attn_query)
+                attention_count = attn_result.scalar()
+        finally:
+            if hasattr(db_gen, "aclose"):
+                await db_gen.aclose()
+            elif hasattr(db_gen, "close"):
+                db_gen.close()
 
         return templates.TemplateResponse(
             request=request, 

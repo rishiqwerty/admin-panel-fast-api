@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from ..core.schema import generate_admin_schema
 from ..core.crud import CRUDEngine
 
@@ -28,44 +28,46 @@ def create_admin_router(admin: Any) -> APIRouter:
                 search: str = None, 
                 order_by: str = None,
                 order_dir: str = "asc",
-                db: Session = Depends(db_dep)
+                db: AsyncSession = Depends(db_dep)
             ):
-                records = crud_engine.list(
+                records = await crud_engine.list(
                     db, skip=skip, limit=limit, search=search, 
                     order_by=order_by, order_dir=order_dir
                 )
-                total = crud_engine.count(db, search=search)
+                total = await crud_engine.count(db, search=search)
                 return {"data": records, "total": total}
 
             @router.get(f"/{model_name}/{{id}}", name=f"admin_get_{model_name}")
-            async def get_record(id: Any, db: Session = Depends(db_dep)):
-                record = crud_engine.get(db, id)
+            async def get_record(id: Any, db: AsyncSession = Depends(db_dep)):
+                record = await crud_engine.get(db, id)
                 if not record:
                     raise HTTPException(status_code=404, detail="Record not found")
                 return record
 
             @router.post(f"/{model_name}", name=f"admin_create_{model_name}")
-            async def create_record(data: Dict[str, Any], db: Session = Depends(db_dep)):
+            async def create_record(data: Dict[str, Any], db: AsyncSession = Depends(db_dep)):
+                # Remove readonly fields from incoming data
                 readonly = reg.config.get("readonly_fields", [])
                 for field in readonly:
                     if field in data:
                         del data[field]
-                return crud_engine.create(db, data)
+                return await crud_engine.create(db, data)
 
             @router.put(f"/{model_name}/{{id}}", name=f"admin_update_{model_name}")
-            async def update_record(id: Any, data: Dict[str, Any], db: Session = Depends(db_dep)):
+            async def update_record(id: Any, data: Dict[str, Any], db: AsyncSession = Depends(db_dep)):
+                # Remove readonly fields from incoming data
                 readonly = reg.config.get("readonly_fields", [])
                 for field in readonly:
                     if field in data:
                         del data[field]
-                record = crud_engine.update(db, id, data)
+                record = await crud_engine.update(db, id, data)
                 if not record:
                     raise HTTPException(status_code=404, detail="Record not found")
                 return record
 
             @router.delete(f"/{model_name}/{{id}}", name=f"admin_delete_{model_name}")
-            async def delete_record(id: Any, db: Session = Depends(db_dep)):
-                success = crud_engine.delete(db, id)
+            async def delete_record(id: Any, db: AsyncSession = Depends(db_dep)):
+                success = await crud_engine.delete(db, id)
                 if not success:
                     raise HTTPException(status_code=404, detail="Record not found")
                 return {"success": True}

@@ -1,6 +1,7 @@
 from typing import Any, List, Optional, Type
-from sqlalchemy.orm import Session
-from sqlalchemy import Boolean, Integer, Float
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func, Boolean, Integer, Float
+
 
 class CRUDEngine:
     def __init__(self, model: Type[Any]):
@@ -39,26 +40,33 @@ class CRUDEngine:
         
         return prepared
 
-    def count(self, db: Session, search: Optional[str] = None) -> int:
-        query = db.query(self.model)
-        # TODO: Implement search filtering in count
-        return query.count()
+    async def count(self, db: AsyncSession, search: Optional[str] = None) -> int:
+        query = select(func.count()).select_from(self.model)
+        if search:
+            for column in self.model.__table__.columns:
+                if hasattr(column.type, "python_type") and column.type.python_type == str:
+                    query = query.filter(column.contains(search))
+                    break
+        result = await db.execute(query)
+        return result.scalar()
 
-    def list(
+    async def list(
         self, 
-        db: Session, 
+        db: AsyncSession, 
         skip: int = 0, 
         limit: int = 100, 
         search: Optional[str] = None,
         order_by: Optional[str] = None,
         order_dir: str = "asc"
     ) -> List[Any]:
-        query = db.query(self.model)
+        query = select(self.model).offset(skip).limit(limit)
         
         # Apply Search
         if search:
-            # TODO: Implement generic search logic
-            pass
+            for column in self.model.__table__.columns:
+                if hasattr(column.type, "python_type") and column.type.python_type == str:
+                    query = query.filter(column.contains(search))
+                    break
             
         # Apply Sorting
         if order_by and hasattr(self.model, order_by):
@@ -68,48 +76,36 @@ class CRUDEngine:
             else:
                 query = query.order_by(column.asc())
         
-        return query.offset(skip).limit(limit).all()
+        result = await db.execute(query)
+        return result.scalars().all()
 
-    def _cast_id(self, id: Any) -> Any:
-        """
-        Cast ID to the correct type based on the model's primary key.
-        """
-        col = self.model.__table__.primary_key.columns[0]
-        if isinstance(col.type, Integer):
-            try:
-                return int(id)
-            except (ValueError, TypeError):
-                return id
-        return id
+    async def get(self, db: AsyncSession, id: Any) -> Optional[Any]:
+        return await db.get(self.model, id)
 
-    def get(self, db: Session, id: Any) -> Optional[Any]:
-        casted_id = self._cast_id(id)
-        return db.query(self.model).filter(self.model.id == casted_id).first()
-
-    def create(self, db: Session, data: dict) -> Any:
+    async def create(self, db: AsyncSession, data: dict) -> Any:
         prepared_data = self._prepare_data(data)
         obj = self.model(**prepared_data)
         db.add(obj)
-        db.commit()
-        db.refresh(obj)
+        await db.commit()
+        await db.refresh(obj)
         return obj
 
-    def update(self, db: Session, id: Any, data: dict) -> Optional[Any]:
-        obj = self.get(db, id)
+    async def update(self, db: AsyncSession, id: Any, data: dict) -> Optional[Any]:
+        obj = await self.get(db, id)
         if not obj:
             return None
         
         prepared_data = self._prepare_data(data)
         for key, value in prepared_data.items():
             setattr(obj, key, value)
-        db.commit()
-        db.refresh(obj)
+        await db.commit()
+        await db.refresh(obj)
         return obj
 
-    def delete(self, db: Session, id: Any) -> bool:
-        obj = self.get(db, id)
+    async def delete(self, db: AsyncSession, id: Any) -> bool:
+        obj = await self.get(db, id)
         if not obj:
             return False
-        db.delete(obj)
-        db.commit()
+        await db.delete(obj)
+        await db.commit()
         return True
