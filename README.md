@@ -2,6 +2,17 @@
 
 A premium, lightweight, pluggable admin panel for FastAPI and SQLAlchemy.
 
+## Screenshots
+
+### 🖥️ Dashboard / System Overview
+![Dashboard](docs/images/dashboard.png)
+
+### 📊 Model List View
+![Model List](docs/images/model_list.png)
+
+### 📝 Edit/Create Record Form
+![Model Form](docs/images/model_form.png)
+
 ## Features
 
 - **Zero-config CRUD**: Automatically generate admin interfaces for your models.
