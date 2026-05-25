@@ -5,13 +5,13 @@ A premium, lightweight, pluggable admin panel for FastAPI and SQLAlchemy.
 ## Screenshots
 
 ### 🖥️ Dashboard / System Overview
-![Dashboard](docs/images/dashboard.png)
+![Dashboard](https://raw.githubusercontent.com/rishiqwerty/admin-panel-fast-api/add-docs-for-setting-up-admin-panel/docs/images/dashboard.png)
 
 ### 📊 Model List View
-![Model List](docs/images/model_list.png)
+![Model List](https://raw.githubusercontent.com/rishiqwerty/admin-panel-fast-api/add-docs-for-setting-up-admin-panel/docs/images/model_list.png)
 
 ### 📝 Edit/Create Record Form
-![Model Form](docs/images/model_form.png)
+![Model Form](https://raw.githubusercontent.com/rishiqwerty/admin-panel-fast-api/add-docs-for-setting-up-admin-panel/docs/images/model_form.png)
 
 ## Features
 
