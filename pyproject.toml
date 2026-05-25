@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fastapi-lite-admin"
-version = "0.1.3"
+version = "0.1.5"
 description = "A lightweight, pluggable admin panel for FastAPI"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -30,3 +30,7 @@ exclude = ["example*"]
 
 [tool.setuptools.package-data]
 "fastapi_admin_lite.ui.templates" = ["*.html"]
+
+[project.urls]
+Homepage = "https://github.com/rishiqwerty/admin-panel-fast-api"
+Repository = "https://github.com/rishiqwerty/admin-panel-fast-api"
