@@ -1,5 +1,9 @@
 from typing import Any, Dict, List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+import shutil
+import uuid
+import os
+import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..core.schema import generate_admin_schema
 from ..core.crud import CRUDEngine
@@ -10,6 +14,33 @@ def create_admin_router(admin: Any) -> APIRouter:
     @router.get("/schema")
     async def get_schema():
         return generate_admin_schema(admin.registry)
+
+    @router.post("/upload", name="admin_upload_file")
+    async def upload_file(file: UploadFile = File(...)):
+        if admin.upload_handler:
+            try:
+                if asyncio.iscoroutinefunction(admin.upload_handler):
+                    url = await admin.upload_handler(file)
+                else:
+                    url = admin.upload_handler(file)
+                return {"url": url}
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Custom upload failed: {str(e)}")
+        else:
+            if not os.path.exists(admin.upload_dir):
+                os.makedirs(admin.upload_dir)
+            
+            ext = os.path.splitext(file.filename)[1]
+            filename = f"{uuid.uuid4()}{ext}"
+            filepath = os.path.join(admin.upload_dir, filename)
+            
+            try:
+                with open(filepath, "wb") as buffer:
+                    shutil.copyfileobj(file.file, buffer)
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Could not save file: {str(e)}")
+                
+            return {"url": f"{admin.upload_url}/{filename}"}
 
     @router.get("/models")
     async def list_models():

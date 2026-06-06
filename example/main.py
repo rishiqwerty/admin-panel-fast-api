@@ -53,10 +53,11 @@ admin.register(
 admin.register(
     model=Product,
     get_db=get_db,
-    list_display=["id", "name", "price", "stock", "created_at"],
+    list_display=["id", "name", "price", "image_url", "created_at"],
     date_field="created_at",
     attention_filter=(Product.price == 0),
-    readonly_fields=["created_at"]
+    readonly_fields=["created_at"],
+    file_fields=["image_url"]
 )
 
 # 6. Mount admin panel
