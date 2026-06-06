@@ -16,7 +16,10 @@ class Admin:
         dashboard_template: Optional[str] = None,
         dashboard_models: Optional[List[str]] = None,
         get_logs: Optional[Callable] = None,
-        logs_config: Optional[Dict[str, Any]] = None
+        logs_config: Optional[Dict[str, Any]] = None,
+        upload_dir: str = "uploads",
+        upload_url: str = "/uploads",
+        upload_handler: Optional[Callable[[Any], Any]] = None
     ):
         self.title = title
         self.base_url = base_url
@@ -30,6 +33,9 @@ class Admin:
             "columns": ["level", "timestamp", "message"],
             "title": "System Activity"
         }
+        self.upload_dir = upload_dir
+        self.upload_url = upload_url
+        self.upload_handler = upload_handler
         
         # Auth & Permissions
         self.auth_dependency = auth_dependency
@@ -53,6 +59,7 @@ class Admin:
         date_field: Optional[str] = None,
         attention_filter: Optional[Any] = None,
         readonly_fields: Optional[List[str]] = None,
+        file_fields: Optional[List[str]] = None,
         config: Optional[Dict[str, Any]] = None
     ):
         """
@@ -73,6 +80,9 @@ class Admin:
             
         if readonly_fields:
             config["readonly_fields"] = readonly_fields
+
+        if file_fields:
+            config["file_fields"] = file_fields
             
         self.registry.register(model, get_db, config)
 
@@ -80,6 +90,14 @@ class Admin:
         """
         Mount the admin router to the FastAPI application.
         """
+        # Mount upload directory for static access if using default storage
+        if not self.upload_handler:
+            import os
+            from fastapi.staticfiles import StaticFiles
+            if not os.path.exists(self.upload_dir):
+                os.makedirs(self.upload_dir)
+            app.mount(self.upload_url, StaticFiles(directory=self.upload_dir), name="admin_uploads")
+
         # Collect all dependencies
         all_deps = list(self.dependencies)
         if self.auth_dependency:

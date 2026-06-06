@@ -16,4 +16,5 @@ class Product(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     price = Column(Integer)
+    image_url = Column(String, nullable=True)
     created_at = Column(DateTime, server_default=func.now())

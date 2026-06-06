@@ -142,6 +142,12 @@
 
     async function loadDetail() {
         try {
+            // Fetch schema to check file fields
+            const schemaResponse = await fetch(`${apiBaseUrl}/schema`);
+            const schema = await schemaResponse.json();
+            const modelSchema = schema.models.find(m => m.name === modelName);
+            const fileFields = modelSchema?.config?.file_fields || [];
+
             const response = await fetch(`${apiBaseUrl}/${modelName}/${recordId}`);
             const data = await response.json();
             
@@ -150,10 +156,34 @@
             
             container.innerHTML = keys.map(key => {
                 const val = data[key];
-                const isFullWidth = typeof val === 'string' && val.length > 50;
+                
+                const isFile = fileFields.includes(key);
+                const isFullWidth = (typeof val === 'string' && val.length > 50) || isFile;
                 
                 let displayVal = val;
-                if (typeof val === 'boolean' || key === 'is_active') {
+                if (isFile) {
+                    if (!val) {
+                        displayVal = '<span style="color: var(--text-muted);">None</span>';
+                    } else {
+                        const isImg = val.match(/\.(jpeg|jpg|gif|png|webp)$/i);
+                        if (isImg) {
+                            displayVal = `
+                                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                                    <img src="${val}" alt="${key}" style="max-width: 300px; max-height: 300px; object-fit: contain; border-radius: 8px; border: 1px solid var(--border);">
+                                    <a href="${val}" target="_blank" class="file-preview-link" style="color: var(--primary); text-decoration: none; font-size: 0.85rem; font-weight: 500;">
+                                        <i class="fas fa-external-link-alt"></i> View full size
+                                    </a>
+                                </div>
+                            `;
+                        } else {
+                            displayVal = `
+                                <a href="${val}" target="_blank" class="file-preview-link" style="display: inline-flex; align-items: center; gap: 8px; color: var(--primary); text-decoration: none; font-weight: 500; margin-top: 4px;">
+                                    <i class="fas fa-file-alt" style="font-size: 1.25rem;"></i> View File (${val.split('/').pop()})
+                                </a>
+                            `;
+                        }
+                    }
+                } else if (typeof val === 'boolean' || key === 'is_active') {
                     const isActive = val === true || val === 'true';
                     displayVal = `<span class="status-pill ${isActive ? 'active' : 'inactive'}">
                                     <i class="fas ${isActive ? 'fa-check-circle' : 'fa-times-circle'}"></i>

@@ -101,6 +101,7 @@ When calling `admin.register()`, you can configure how each model is represented
 | **`date_field`** | `str` | No | Name of the datetime field (e.g. `created_at`). Required to show the "24h Activity" count cards on the dashboard and lists. |
 | **`attention_filter`** | `SQLAlchemy Expression` | No | A SQLAlchemy binary filter expression (e.g., `User.is_active == False` or `Product.stock < 10`) used to calculate and flag rows that require moderator attention. |
 | **`readonly_fields`** | `List[str]` | No | List of columns that cannot be modified or set via creation or updates (e.g., auto-generated columns or timestamps like `id`, `created_at`). |
+| **`file_fields`** | `List[str]` | No | List of column names that should be treated as file upload fields, rendering a drag-and-drop zone. |
 | **`config`** | `Dict[str, Any]` | No | Dictionary containing extra settings. Supports `"display_name"` to override the sidebar label. |
 
 ---
@@ -120,6 +121,9 @@ The `Admin` class constructor supports the following parameters for customizatio
 | **`dashboard_models`** | `List[str]` | `None` | List of registered model names to display on the dashboard (if you want to restrict which registered models show on the home dashboard). |
 | **`get_logs`** | `Callable` | `None` | An optional callable (async or sync) returning system logs to display on the dashboard activity log feed. |
 | **`logs_config`** | `Dict[str, Any]` | `{"title": "System Activity", "columns": ["level", "timestamp", "message"]}` | Config dictionary to customize dashboard log columns and activity title. |
+| **`upload_dir`** | `str` | `"uploads"` | Local directory path where uploaded files will be stored. |
+| **`upload_url`** | `str` | `"/uploads"` | URL prefix used to serve uploaded files statically. |
+| **`upload_handler`** | `Callable` | `None` | Optional custom upload handler callback for buckets (S3, GCS, Azure). |
 
 ---
 
@@ -180,6 +184,49 @@ admin = Admin(
         "title": "Recent Activity Feed",
         "columns": ["level", "timestamp", "event", "user"]
     }
+)
+```
+
+## File Uploads & Cloud Storage
+
+`FastAPI Lite Admin` supports rendering drag-and-drop file uploads for designated string fields (e.g., image paths or document URLs).
+
+### 1. Default Local Storage
+By default, uploaded files are stored locally in the `uploads/` directory and served statically:
+
+```python
+admin = Admin(
+    title="My Admin",
+    upload_dir="my_uploads",   # Stored in project-root/my_uploads
+    upload_url="/static/files" # Served statically at http://localhost:8000/static/files
+)
+```
+
+### 2. Cloud Storage / Buckets (S3, GCS, Azure, etc.)
+If you are deploying to production and storing files in a cloud bucket, you can plug in a custom `upload_handler`:
+
+```python
+from fastapi import UploadFile
+
+async def my_s3_upload_handler(file: UploadFile) -> str:
+    # 1. Upload file.file to S3, GCS, Cloudinary, etc.
+    # 2. Return the public URL to be stored in the database
+    return f"https://my-bucket.s3.amazonaws.com/{file.filename}"
+
+admin = Admin(
+    title="Cloud Admin",
+    upload_handler=my_s3_upload_handler
+)
+```
+
+### 3. Enabling File Upload in Models
+Pass the `file_fields` parameter when registering your model:
+
+```python
+admin.register(
+    model=Product,
+    get_db=get_db,
+    file_fields=["image_url"] # These will render as drag-and-drop zones
 )
 ```
 
