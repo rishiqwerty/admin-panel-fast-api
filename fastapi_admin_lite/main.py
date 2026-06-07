@@ -19,7 +19,8 @@ class Admin:
         logs_config: Optional[Dict[str, Any]] = None,
         upload_dir: str = "uploads",
         upload_url: str = "/uploads",
-        upload_handler: Optional[Callable[[Any], Any]] = None
+        upload_handler: Optional[Callable[[Any], Any]] = None,
+        url_resolver: Optional[Callable[[str], Any]] = None
     ):
         self.title = title
         self.base_url = base_url
@@ -40,6 +41,9 @@ class Admin:
         # Auth & Permissions
         self.auth_dependency = auth_dependency
         self.permission_checker = permission_checker or self.default_permission
+        
+        # Media resolver
+        self.url_resolver = url_resolver or self.default_url_resolver
 
         # Print warnings if not configured
         if not auth_dependency:
@@ -50,6 +54,21 @@ class Admin:
     async def default_permission(self, user: Any = None) -> bool:
         """Default permission checker that allows everything."""
         return True
+
+    def default_url_resolver(self, path: str) -> str:
+        """Default URL resolver that resolves relative paths to the local static uploads URL."""
+        if not path:
+            return ""
+        if path.startswith("http://") or path.startswith("https://") or path.startswith("data:"):
+            return path
+        
+        clean_path = path.lstrip("/")
+        clean_prefix = self.upload_url.strip("/")
+        
+        if clean_path.startswith(clean_prefix):
+            return f"/{clean_path}"
+            
+        return f"{self.upload_url}/{clean_path}"
 
     def register(
         self,

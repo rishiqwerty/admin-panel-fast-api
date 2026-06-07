@@ -303,6 +303,7 @@
             const schema = await schemaResponse.json();
             const modelSchema = schema.models.find(m => m.name === modelName);
             const listDisplay = modelSchema ? modelSchema.list_display : null;
+            const fileFields = modelSchema?.config?.file_fields || [];
 
             // 2. Fetch Data
             const skip = (currentPage - 1) * pageSize;
@@ -381,6 +382,18 @@
                                         <div class="status-dot"></div>
                                         ${isActive ? 'Active' : 'Inactive'}
                                     </span>
+                                </td>
+                            `;
+                        }
+
+                        if (fileFields.includes(col)) {
+                            if (!val) return '<td>--</td>';
+                            const displayUrl = val.startsWith('http://') || val.startsWith('https://') ? val : `${apiBaseUrl}/media?path=${encodeURIComponent(val)}`;
+                            return `
+                                <td>
+                                    <a href="${displayUrl}" target="_blank" class="file-preview-link" style="color: var(--primary); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;">
+                                        <i class="fas fa-external-link-alt"></i> View File
+                                    </a>
                                 </td>
                             `;
                         }

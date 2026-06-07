@@ -124,6 +124,7 @@ The `Admin` class constructor supports the following parameters for customizatio
 | **`upload_dir`** | `str` | `"uploads"` | Local directory path where uploaded files will be stored. |
 | **`upload_url`** | `str` | `"/uploads"` | URL prefix used to serve uploaded files statically. |
 | **`upload_handler`** | `Callable` | `None` | Optional custom upload handler callback for buckets (S3, GCS, Azure). |
+| **`url_resolver`** | `Callable` | `None` | Optional custom URL resolver callback to resolve database keys to presigned URLs (S3, GCS). |
 
 ---
 
@@ -219,7 +220,24 @@ admin = Admin(
 )
 ```
 
-### 3. Enabling File Upload in Models
+### 3. Storage URL Resolution (Presigned URLs)
+If the database stores relative paths/keys (e.g. `generated/uuid.jpg` in GCS or S3) rather than full absolute URLs, browser requests will fail. You can provide a custom `url_resolver` callback:
+
+```python
+async def get_s3_presigned_url(path: str) -> str:
+    # 1. Generate temporary presigned GET URL for GCS/S3 key
+    # 2. Return URL
+    return s3_client.generate_presigned_url('get_object', Params={'Bucket': 'my-bucket', 'Key': path})
+
+admin = Admin(
+    title="Cloud Admin",
+    url_resolver=get_s3_presigned_url
+)
+```
+
+The admin panel routes all file rendering and download links through the `/admin/api/media?path=...` redirect proxy, which executes `url_resolver` to redirect the browser to the temporary accessible URL safely, keeping your database values clean.
+
+### 4. Enabling File Upload in Models
 Pass the `file_fields` parameter when registering your model:
 
 ```python
