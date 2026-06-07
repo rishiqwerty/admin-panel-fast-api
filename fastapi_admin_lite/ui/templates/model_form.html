@@ -451,12 +451,13 @@
 
                 const isFile = fileFields.includes(name);
                 if (isFile) {
+                    const displayUrl = val ? (val.startsWith('http://') || val.startsWith('https://') ? val : `${apiBaseUrl}/media?path=${encodeURIComponent(val)}`) : '';
                     const previewHtml = val ? `
                         <div class="file-preview-container" id="preview-${name}">
                             <div class="file-preview-icon"><i class="fas fa-file-alt"></i></div>
                             <div class="file-preview-info">
                                 <span class="file-preview-name">${val.split('/').pop()}</span>
-                                <a href="${val}" target="_blank" class="file-preview-link">View file</a>
+                                <a href="${displayUrl}" target="_blank" class="file-preview-link">View file</a>
                             </div>
                             <button type="button" class="btn-remove-file" onclick="clearFile('${name}')">
                                 <i class="fas fa-times"></i>
@@ -591,13 +592,15 @@
             // Set value in hidden input
             hiddenInput.value = fileUrl;
             
+            const displayUrl = fileUrl.startsWith('http://') || fileUrl.startsWith('https://') ? fileUrl : `${apiBaseUrl}/media?path=${encodeURIComponent(fileUrl)}`;
+            
             // Update preview
             previewWrapper.innerHTML = `
                 <div class="file-preview-container" id="preview-${fieldName}">
                     <div class="file-preview-icon"><i class="fas fa-file-alt"></i></div>
                     <div class="file-preview-info">
                         <span class="file-preview-name">${file.name}</span>
-                        <a href="${fileUrl}" target="_blank" class="file-preview-link">View file</a>
+                        <a href="${displayUrl}" target="_blank" class="file-preview-link">View file</a>
                     </div>
                     <button type="button" class="btn-remove-file" onclick="clearFile('${fieldName}')">
                         <i class="fas fa-times"></i>

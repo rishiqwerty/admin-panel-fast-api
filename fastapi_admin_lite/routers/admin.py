@@ -1,5 +1,6 @@
 from typing import Any, Dict, List
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import RedirectResponse
 import shutil
 import uuid
 import os
@@ -41,6 +42,19 @@ def create_admin_router(admin: Any) -> APIRouter:
                 raise HTTPException(status_code=500, detail=f"Could not save file: {str(e)}")
                 
             return {"url": f"{admin.upload_url}/{filename}"}
+
+    @router.get("/media", name="admin_resolve_media")
+    async def resolve_media(path: str = Query(...)):
+        if not path:
+            raise HTTPException(status_code=400, detail="Path parameter is required")
+        try:
+            if asyncio.iscoroutinefunction(admin.url_resolver):
+                resolved_url = await admin.url_resolver(path)
+            else:
+                resolved_url = admin.url_resolver(path)
+            return RedirectResponse(url=resolved_url)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to resolve media URL: {str(e)}")
 
     @router.get("/models")
     async def list_models():
