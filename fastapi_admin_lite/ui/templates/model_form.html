@@ -416,7 +416,7 @@
 
             const container = document.getElementById('form-fields');
             const readonlyFields = modelSchema.config?.readonly_fields || [];
-            const fileFields = modelSchema.config?.file_fields || [];
+            const fileFields = modelSchema.config?.file_fields || {};
             
             container.innerHTML = modelSchema.fields.map(field => {
                 const name = field.name;
@@ -449,7 +449,7 @@
                     `;
                 }
 
-                const isFile = fileFields.includes(name);
+                const isFile = name in fileFields;
                 if (isFile) {
                     const displayUrl = val ? (val.startsWith('http://') || val.startsWith('https://') ? val : `${apiBaseUrl}/media?path=${encodeURIComponent(val)}`) : '';
                     const previewHtml = val ? `
@@ -480,7 +480,7 @@
                                         <div class="upload-hint">Supports any file type</div>
                                     </div>
                                 </div>
-                                <input type="file" id="input-file-${name}" class="hidden-file-input" style="display: none;" onchange="handleFileSelect(event, '${name}')" ${disabled}>
+                                <input type="file" id="input-file-${name}" class="hidden-file-input" style="display: none;" onchange="handleFileSelect(event, '${name}', '${fileFields[name] || ''}')" ${disabled}>
                                 <div id="preview-wrapper-${name}">
                                     ${previewHtml}
                                 </div>
@@ -506,8 +506,8 @@
             }).join('');
 
             // Setup drag & drop for file fields
-            fileFields.forEach(name => {
-                setupDragAndDrop(name);
+            Object.keys(fileFields).forEach(name => {
+                setupDragAndDrop(name, fileFields[name] || '');
             });
         } catch (error) {
             console.error('Error loading form:', error);
@@ -553,13 +553,13 @@
         }
     };
 
-    async function handleFileSelect(event, fieldName) {
+    async function handleFileSelect(event, fieldName, fieldPath) {
         const file = event.target.files[0];
         if (!file) return;
-        await uploadFile(file, fieldName);
+        await uploadFile(file, fieldName, fieldPath);
     }
 
-    async function uploadFile(file, fieldName) {
+    async function uploadFile(file, fieldName, fieldPath) {
         const dragzone = document.getElementById(`dragzone-${fieldName}`);
         const previewWrapper = document.getElementById(`preview-wrapper-${fieldName}`);
         const hiddenInput = document.getElementById(`input-hidden-${fieldName}`);
@@ -577,7 +577,10 @@
         formData.append('file', file);
         
         try {
-            const response = await fetch(`${apiBaseUrl}/upload`, {
+            const uploadUrl = fieldPath
+                ? `${apiBaseUrl}/upload?field_path=${encodeURIComponent(fieldPath)}`
+                : `${apiBaseUrl}/upload`;
+            const response = await fetch(uploadUrl, {
                 method: 'POST',
                 body: formData
             });
@@ -635,7 +638,7 @@
     }
 
     // Setup drag and drop for a dragzone
-    function setupDragAndDrop(fieldName) {
+    function setupDragAndDrop(fieldName, fieldPath) {
         const dragzone = document.getElementById(`dragzone-${fieldName}`);
         if (!dragzone) return;
 
@@ -659,7 +662,7 @@
             const dt = e.dataTransfer;
             const file = dt.files[0];
             if (file) {
-                await uploadFile(file, fieldName);
+                await uploadFile(file, fieldName, fieldPath);
             }
         }, false);
     }

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Type, Callable
+from typing import Any, Dict, List, Optional, Type, Callable, Union
 from fastapi import FastAPI, APIRouter, Depends
 from .core.registry import Registry
 from .routers.admin import create_admin_router
@@ -78,11 +78,17 @@ class Admin:
         date_field: Optional[str] = None,
         attention_filter: Optional[Any] = None,
         readonly_fields: Optional[List[str]] = None,
-        file_fields: Optional[List[str]] = None,
+        file_fields: Optional[Union[List[str], Dict[str, str]]] = None,
         config: Optional[Dict[str, Any]] = None
     ):
         """
         Register a model with the admin panel.
+        
+        Args:
+            file_fields: Fields that accept file uploads. Can be:
+                - A list of field names (uploads go to the root upload_dir)
+                - A dict mapping field names to subdirectory paths
+                  e.g. {"profile_image": "profile_images", "cover_image": "cover_images"}
         """
         config = config or {}
         if list_display:
@@ -101,7 +107,11 @@ class Admin:
             config["readonly_fields"] = readonly_fields
 
         if file_fields:
-            config["file_fields"] = file_fields
+            # Normalize: list → dict with empty string values (root upload dir)
+            if isinstance(file_fields, list):
+                config["file_fields"] = {field: "" for field in file_fields}
+            else:
+                config["file_fields"] = file_fields
             
         self.registry.register(model, get_db, config)
 
@@ -116,6 +126,23 @@ class Admin:
             if not os.path.exists(self.upload_dir):
                 os.makedirs(self.upload_dir)
             app.mount(self.upload_url, StaticFiles(directory=self.upload_dir), name="admin_uploads")
+            
+            # Auto-mount unique base directories from file_fields configs
+            # e.g. file_fields={"profile_image": "media/profile_images"} → mount "media" at "/media"
+            mounted_dirs = {os.path.abspath(self.upload_dir)}
+            for name, reg in self.registry.get_models().items():
+                file_fields = reg.config.get("file_fields", {})
+                for field_name, field_path in file_fields.items():
+                    if not field_path:
+                        continue
+                    # Extract the root directory (first path component)
+                    base_dir = field_path.split("/")[0]
+                    abs_base = os.path.abspath(base_dir)
+                    if abs_base not in mounted_dirs:
+                        if not os.path.exists(base_dir):
+                            os.makedirs(base_dir, exist_ok=True)
+                        app.mount(f"/{base_dir}", StaticFiles(directory=base_dir), name=f"admin_uploads_{base_dir}")
+                        mounted_dirs.add(abs_base)
 
         # Collect all dependencies
         all_deps = list(self.dependencies)

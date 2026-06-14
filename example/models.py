@@ -18,3 +18,12 @@ class Product(Base):
     price = Column(Integer)
     image_url = Column(String, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
+
+class ImageModel(Base):
+    __tablename__ = "images"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    profile_image = Column(String, nullable=True)
+    cover_image = Column(String, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())

@@ -303,7 +303,7 @@
             const schema = await schemaResponse.json();
             const modelSchema = schema.models.find(m => m.name === modelName);
             const listDisplay = modelSchema ? modelSchema.list_display : null;
-            const fileFields = modelSchema?.config?.file_fields || [];
+            const fileFields = modelSchema?.config?.file_fields || {};
 
             // 2. Fetch Data
             const skip = (currentPage - 1) * pageSize;
@@ -386,7 +386,7 @@
                             `;
                         }
 
-                        if (fileFields.includes(col)) {
+                        if (col in fileFields) {
                             if (!val) return '<td>--</td>';
                             const displayUrl = val.startsWith('http://') || val.startsWith('https://') ? val : `${apiBaseUrl}/media?path=${encodeURIComponent(val)}`;
                             return `

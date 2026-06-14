@@ -2,7 +2,7 @@ import asyncio
 from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi_admin_lite import Admin
 from .database import engine, Base, get_db
-from .models import User, Product
+from .models import User, Product, ImageModel
 from contextlib import asynccontextmanager
 
 # 1. Define a security dependency
@@ -58,6 +58,19 @@ admin.register(
     attention_filter=(Product.price == 0),
     readonly_fields=["created_at"],
     file_fields=["image_url"]
+)
+
+# Register ImageModel with field-specific upload paths
+admin.register(
+    model=ImageModel,
+    get_db=get_db,
+    list_display=["id", "name", "profile_image", "cover_image", "created_at"],
+    date_field="created_at",
+    readonly_fields=["created_at"],
+    file_fields={
+        "profile_image": "profile_images",
+        "cover_image": "cover_images",
+    }
 )
 
 # 6. Mount admin panel

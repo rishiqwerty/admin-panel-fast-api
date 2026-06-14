@@ -1,5 +1,6 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+import inspect
 from fastapi.responses import RedirectResponse
 import shutil
 import uuid
@@ -17,23 +18,44 @@ def create_admin_router(admin: Any) -> APIRouter:
         return generate_admin_schema(admin.registry)
 
     @router.post("/upload", name="admin_upload_file")
-    async def upload_file(file: UploadFile = File(...)):
+    async def upload_file(
+        file: UploadFile = File(...),
+        field_path: Optional[str] = Query(default=None, description="Subdirectory path for field-specific uploads")
+    ):
         if admin.upload_handler:
             try:
+                # Pass field_path to custom handler if it accepts it
+                handler_sig = inspect.signature(admin.upload_handler)
+                handler_params = handler_sig.parameters
+                
+                kwargs = {}
+                if 'field_path' in handler_params:
+                    kwargs['field_path'] = field_path or ''
+                
                 if asyncio.iscoroutinefunction(admin.upload_handler):
-                    url = await admin.upload_handler(file)
+                    url = await admin.upload_handler(file, **kwargs)
                 else:
-                    url = admin.upload_handler(file)
+                    url = admin.upload_handler(file, **kwargs)
                 return {"url": url}
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"Custom upload failed: {str(e)}")
         else:
-            if not os.path.exists(admin.upload_dir):
-                os.makedirs(admin.upload_dir)
+            # Build target directory
+            # field_path is the complete directory path (e.g. "media/profile_images")
+            # When empty, falls back to the global upload_dir
+            if field_path:
+                target_dir = field_path
+                url_prefix = f"/{field_path}"
+            else:
+                target_dir = admin.upload_dir
+                url_prefix = admin.upload_url
+            
+            if not os.path.exists(target_dir):
+                os.makedirs(target_dir, exist_ok=True)
             
             ext = os.path.splitext(file.filename)[1]
             filename = f"{uuid.uuid4()}{ext}"
-            filepath = os.path.join(admin.upload_dir, filename)
+            filepath = os.path.join(target_dir, filename)
             
             try:
                 with open(filepath, "wb") as buffer:
@@ -41,7 +63,7 @@ def create_admin_router(admin: Any) -> APIRouter:
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"Could not save file: {str(e)}")
                 
-            return {"url": f"{admin.upload_url}/{filename}"}
+            return {"url": f"{url_prefix}/{filename}"}
 
     @router.get("/media", name="admin_resolve_media")
     async def resolve_media(path: str = Query(...)):

@@ -146,7 +146,7 @@
             const schemaResponse = await fetch(`${apiBaseUrl}/schema`);
             const schema = await schemaResponse.json();
             const modelSchema = schema.models.find(m => m.name === modelName);
-            const fileFields = modelSchema?.config?.file_fields || [];
+            const fileFields = modelSchema?.config?.file_fields || {};
 
             const response = await fetch(`${apiBaseUrl}/${modelName}/${recordId}`);
             const data = await response.json();
@@ -157,7 +157,7 @@
             container.innerHTML = keys.map(key => {
                 const val = data[key];
                 
-                const isFile = fileFields.includes(key);
+                const isFile = key in fileFields;
                 const isFullWidth = (typeof val === 'string' && val.length > 50) || isFile;
                 
                 let displayVal = val;
