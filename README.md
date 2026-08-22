@@ -101,7 +101,7 @@ When calling `admin.register()`, you can configure how each model is represented
 | **`date_field`** | `str` | No | Name of the datetime field (e.g. `created_at`). Required to show the "24h Activity" count cards on the dashboard and lists. |
 | **`attention_filter`** | `SQLAlchemy Expression` | No | A SQLAlchemy binary filter expression (e.g., `User.is_active == False` or `Product.stock < 10`) used to calculate and flag rows that require moderator attention. |
 | **`readonly_fields`** | `List[str]` | No | List of columns that cannot be modified or set via creation or updates (e.g., auto-generated columns or timestamps like `id`, `created_at`). |
-| **`file_fields`** | `List[str]` | No | List of column names that should be treated as file upload fields, rendering a drag-and-drop zone. |
+| **`file_fields`** | `Union[List[str], Dict[str, str]]` | No | Fields that render as file upload drag-and-drop zones. Provide a list of names to upload to the default `upload_dir`, or a dict mapping field names to specific base directory paths (e.g. `{"profile_image": "media/profiles"}`). |
 | **`config`** | `Dict[str, Any]` | No | Dictionary containing extra settings. Supports `"display_name"` to override the sidebar label. |
 
 ---
@@ -238,13 +238,24 @@ admin = Admin(
 The admin panel routes all file rendering and download links through the `/admin/api/media?path=...` redirect proxy, which executes `url_resolver` to redirect the browser to the temporary accessible URL safely, keeping your database values clean.
 
 ### 4. Enabling File Upload in Models
-Pass the `file_fields` parameter when registering your model:
+Pass the `file_fields` parameter when registering your model. You can provide a list for all files to go into the default `upload_dir`, or a dictionary to specify specific base directories for each field.
 
 ```python
+# All files uploaded to default upload_dir
 admin.register(
     model=Product,
     get_db=get_db,
-    file_fields=["image_url"] # These will render as drag-and-drop zones
+    file_fields=["image_url"]
+)
+
+# Files uploaded to specific base directories
+admin.register(
+    model=ImageModel,
+    get_db=get_db,
+    file_fields={
+        "profile_image": "media/profile_images", # Saved to media/profile_images/
+        "cover_image": "media/cover_images"      # Saved to media/cover_images/
+    }
 )
 ```
 
