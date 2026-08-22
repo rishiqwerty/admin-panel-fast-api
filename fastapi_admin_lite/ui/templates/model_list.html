@@ -347,7 +347,7 @@
                     return `
                         <th onclick="toggleSort('${col}')" style="cursor: pointer; user-select: none;">
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                ${col.replace('_', ' ')}
+                                ${col.replace(/_/g, ' ')}
                                 <i class="fas ${icon}" style="font-size: 0.7rem; color: ${isSorted ? 'var(--primary)' : 'var(--border)'}"></i>
                             </div>
                         </th>
@@ -374,13 +374,16 @@
                             `;
                         }
 
-                        if (typeof val === 'boolean' || col === 'is_active') {
-                            const isActive = val === true || val === 'true';
+                        const fieldSchema = modelSchema?.fields?.find(f => f.name === col);
+                        const isBoolean = typeof val === 'boolean' || (fieldSchema && fieldSchema.type.toLowerCase().includes('boolean')) || col === 'is_active';
+                        if (isBoolean) {
+                            const isActive = val === true || val === 'true' || val === 1;
+                            const badgeText = col === 'is_active' ? (isActive ? 'Active' : 'Inactive') : (isActive ? 'True' : 'False');
                             return `
                                 <td>
                                     <span class="status-badge ${isActive ? 'status-active' : 'status-inactive'}">
                                         <div class="status-dot"></div>
-                                        ${isActive ? 'Active' : 'Inactive'}
+                                        ${badgeText}
                                     </span>
                                 </td>
                             `;

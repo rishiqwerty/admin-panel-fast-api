@@ -433,12 +433,13 @@
                 
                 if (isBoolean) {
                     const checked = val === true || val === 'true' ? 'checked' : '';
+                    const fieldTitle = name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
                     return `
                         <div class="form-group full-width">
                             <div class="toggle-group">
                                 <div class="toggle-info">
-                                    <span class="title">Active Status</span>
-                                    <span class="desc">Toggle visibility of this record in the system.</span>
+                                    <span class="title">${fieldTitle}</span>
+                                    <span class="desc">Toggle ${fieldTitle.toLowerCase()} status for this record.</span>
                                 </div>
                                 <label class="switch">
                                     <input type="checkbox" name="${name}" ${checked} value="true" ${disabled}>
@@ -468,7 +469,7 @@
                     return `
                         <div class="form-group full-width">
                             <label class="form-label">
-                                ${name.replace('_', ' ')}
+                                ${name.replace(/_/g, ' ')}
                                 ${isRequired ? '<span style="color: var(--error); margin-left: 4px;">*</span>' : ''}
                             </label>
                             <div class="file-upload-wrapper">
@@ -494,7 +495,7 @@
                 return `
                     <div class="form-group ${isFullWidth ? 'full-width' : ''}">
                         <label class="form-label">
-                            ${name.replace('_', ' ')}
+                            ${name.replace(/_/g, ' ')}
                             ${isRequired ? '<span style="color: var(--error); margin-left: 4px;">*</span>' : ''}
                         </label>
                         ${isFullWidth ? 

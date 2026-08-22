@@ -184,17 +184,22 @@
                             `;
                         }
                     }
-                } else if (typeof val === 'boolean' || key === 'is_active') {
-                    const isActive = val === true || val === 'true';
-                    displayVal = `<span class="status-pill ${isActive ? 'active' : 'inactive'}">
-                                    <i class="fas ${isActive ? 'fa-check-circle' : 'fa-times-circle'}"></i>
-                                    ${isActive ? 'Active' : 'Inactive'}
-                                  </span>`;
+                } else {
+                    const fieldSchema = modelSchema?.fields?.find(f => f.name === key);
+                    const isBoolean = typeof val === 'boolean' || (fieldSchema && fieldSchema.type.toLowerCase().includes('boolean')) || key === 'is_active';
+                    if (isBoolean) {
+                        const isActive = val === true || val === 'true' || val === 1;
+                        const labelText = key === 'is_active' ? (isActive ? 'Active' : 'Inactive') : (isActive ? 'True' : 'False');
+                        displayVal = `<span class="status-pill ${isActive ? 'active' : 'inactive'}">
+                                        <i class="fas ${isActive ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+                                        ${labelText}
+                                      </span>`;
+                    }
                 }
 
                 return `
                     <div class="detail-item ${isFullWidth ? 'full-width' : ''}">
-                        <div class="detail-label">${key.replace('_', ' ')}</div>
+                        <div class="detail-label">${key.replace(/_/g, ' ')}</div>
                         <div class="detail-value">${displayVal}</div>
                     </div>
                 `;
